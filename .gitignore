@@ -1,5 +1,6 @@
 build
 settings.yml
+*.rrd
 
 # Created by https://www.gitignore.io/api/osx,windows,sublimetext,code,intellij,node
 
