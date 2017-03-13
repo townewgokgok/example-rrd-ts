@@ -16,12 +16,10 @@
     "@types/sprintf": "0.0.28"
   },
   "dependencies": {
-    "@types/promisify-node": "^0.4.0",
     "amqplib": "^0.5.1",
     "fs-promise": "^2.0.0",
     "js-yaml": "^3.8.2",
-    "node-rrdtool": "^0.1.3",
-    "promisify-node": "^0.4.0",
+    "rrd": "https://github.com/Orion98MC/node_rrd/tarball/430bb10bd36f27b45ad8b1bf77251276162c0237",
     "sleep-promise": "^2.0.0",
     "sprintf": "^0.1.5"
   }

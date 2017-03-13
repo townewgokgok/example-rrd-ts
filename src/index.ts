@@ -1,9 +1,9 @@
 import * as fs from 'fs-promise';
 import * as yaml from 'js-yaml';
 import * as amqp from 'amqplib';
-import promisify = require('promisify-node');
+import bluebird = require('bluebird');
 import {sprintf} from 'sprintf';
-import RRDTool = require('node-rrdtool');
+import rrd = require('rrd');
 import sleep = require('sleep-promise');
 
 interface Settings {
@@ -33,21 +33,18 @@ let queue: { [id:number]: RrdRequest[]; } = {};
 
 async function processRequest(id:number) {
 	let path = sprintf(s.rrd.file_path_fmt, id);
-	let rrd = new RRDTool();
 	while (0 < queue[id].length) {
 		let req = queue[id].shift();
 		if (!fs.existsSync(path)) {
 			console.log(`Creating RRD file: ${path}`);
-			await promisify(rrd.create).call(rrd,
+			await bluebird.promisify(rrd.create).call(rrd,
 				path,
+				s.rrd.step,
+				req.at - 1,
 				[
-					'--start', `${req.at - 1}`,
-					'--step', `${s.rrd.step}`,
 					`DS:value1:GAUGE:${s.rrd.heartbeat}:U:U`,
 					`DS:value2:GAUGE:${s.rrd.heartbeat}:U:U`,
-					`DS:value3:GAUGE:${s.rrd.heartbeat}:U:U`
-				],
-				[
+					`DS:value3:GAUGE:${s.rrd.heartbeat}:U:U`,
 					`RRA:AVERAGE:0.5:1:60`
 				]
 			);
@@ -55,7 +52,7 @@ async function processRequest(id:number) {
 		let args = req.values.map(v => v.toString());
 		args.unshift(req.at.toString());
 		console.log(`Updating RRD file: ${path} @ ${req.at}`);
-		await promisify(rrd.update).call(rrd, path, args.join(':'));
+		await bluebird.promisify(rrd.update).call(rrd, path, "value1:value2:value3", args);
 		let dt = (new Date).getTime() / 1000.0 - startTime;
 		console.log(`${dt} [sec]`);
 	}
@@ -80,6 +77,7 @@ function onAmqpMessage(msg: amqp.Message) {
 async function main() {
 	const yamlSrc = await fs.readFile('settings.yml');
 	s = yaml.safeLoad(yamlSrc.toString());
+	// console.log("Settings loaded: " + JSON.stringify(s));
 
 	const location = `amqp://${s.amqp.user}:${s.amqp.pass}@${s.amqp.host}:${s.amqp.port||5672}`;
 	console.log(`Connecting to ${location}`);
@@ -88,7 +86,7 @@ async function main() {
 	ch.assertQueue(s.amqp.queue, {durable: true});
 
 	console.log('Waiting for messages');
-	await ch.consume(s.amqp.queue, onAmqpMessage, {noAck: true});
+	await ch.consume(s.amqp.queue, onAmqpMessage, {noAck: false});
 }
 
 main().catch(err => {
