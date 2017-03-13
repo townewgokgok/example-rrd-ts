@@ -5,19 +5,24 @@
   "scripts": {
     "build": "tsc",
     "prestart": "npm run build",
-    "start": "node build/index.js"
+    "start": "rm -f data/*.{rrd,png} ; node build/index.js"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@types/amqplib": "^0.5.1",
     "@types/fs-promise": "^1.0.1",
-    "@types/js-yaml": "^3.5.29"
+    "@types/js-yaml": "^3.5.29",
+    "@types/sprintf": "0.0.28"
   },
   "dependencies": {
+    "@types/promisify-node": "^0.4.0",
     "amqplib": "^0.5.1",
     "fs-promise": "^2.0.0",
     "js-yaml": "^3.8.2",
-    "rrd": "^1.0.1"
+    "node-rrdtool": "^0.1.3",
+    "promisify-node": "^0.4.0",
+    "sleep-promise": "^2.0.0",
+    "sprintf": "^0.1.5"
   }
 }

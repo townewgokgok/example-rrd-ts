@@ -5,6 +5,6 @@ amqp:
   pass: ********
   queue: test.rrd
 rrd:
-  file_path: ./test.rrd
+  file_path_fmt: ./data/test-%05d.rrd
   step: 1
   heartbeat: 2
