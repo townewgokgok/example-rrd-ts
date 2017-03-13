@@ -8,7 +8,7 @@ settings.yml
 # Visual Studio Code - https://code.visualstudio.com/
 .settings/
 .vscode/
-tsconfig.json
+#tsconfig.json
 jsconfig.json
 
 ### Intellij ###

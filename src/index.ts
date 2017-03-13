@@ -1,7 +1,7 @@
 import * as fs from 'fs-promise';
 import * as yaml from 'js-yaml';
 import * as amqp from 'amqplib';
-const RRD: any = require('rrd').RRD;
+import {RRD} from 'rrd';
 
 interface Settings {
 	amqp: {
@@ -23,7 +23,7 @@ interface RrdRequest {
 	values: number[];
 }
 
-function rrdCreate(rrd:any, params:string[]): Promise<any> {
+function rrdCreate(rrd:RRD, params:string[]): Promise<any> {
 	return new Promise((resolve, reject) => {
 		rrd.create(params, {}, (err:string) => {
 			if (err) reject(err); else resolve();
