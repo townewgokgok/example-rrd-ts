@@ -52,7 +52,7 @@ async function processRequest(id:number) {
 		let args = req.values.map(v => v.toString());
 		args.unshift(req.at.toString());
 		console.log(`Updating RRD file: ${path} @ ${req.at}`);
-		await bluebird.promisify(rrd.update).call(rrd, path, "value1:value2:value3", args);
+		await bluebird.promisify(rrd.update).call(rrd, path, "value1:value2:value3", [args.join(":")]);
 		let dt = (new Date).getTime() / 1000.0 - startTime;
 		console.log(`${dt} [sec]`);
 	}
