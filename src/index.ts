@@ -29,6 +29,7 @@ interface RrdRequest {
 
 let s: Settings;
 let startTime: number = 0;
+let count: number = 0;
 let queue: { [id:number]: RrdRequest[]; } = {};
 
 async function processRequest(id:number) {
@@ -54,15 +55,17 @@ async function processRequest(id:number) {
 		console.log(`Updating RRD file: ${path} @ ${req.at}`);
 		await bluebird.promisify(rrd.update).call(rrd, path, "value1:value2:value3", [args.join(":")]);
 		let dt = (new Date).getTime() / 1000.0 - startTime;
-		console.log(`${dt} [sec]`);
+		console.log(`${++count} ${dt} [sec]`);
 	}
 	delete queue[id];
 }
 
+let received: number = 0;
+
 function onAmqpMessage(msg: amqp.Message) {
 	if (startTime == 0) startTime = (new Date).getTime() / 1000.0;
 	let req: RrdRequest = JSON.parse(msg.content.toString());
-	// console.log(`Received a message ${JSON.stringify(req)}`);
+	console.log(`${++received} Received a message ${JSON.stringify(req)}`);
 	if (!queue[req.id]) {
 		queue[req.id] = [req];
 		processRequest(req.id).catch(err => {
