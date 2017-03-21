@@ -25,19 +25,22 @@ interface RrdRequest {
 	id: number;
 	at: number;
 	values: number[];
+	msg?: amqp.Message;
 }
 
 let s: Settings;
 let startTime: number = 0;
 let count: number = 0;
 let queue: { [id:number]: RrdRequest[]; } = {};
+let conn: amqp.Connection;
+let ch: amqp.Channel;
 
 async function processRequest(id:number) {
 	let path = sprintf(s.rrd.file_path_fmt, id);
 	while (0 < queue[id].length) {
 		let req = queue[id].shift();
 		if (!fs.existsSync(path)) {
-			console.log(`Creating RRD file: ${path}`);
+			// console.log(`Creating RRD file: ${path}`);
 			await bluebird.promisify(rrd.create).call(rrd,
 				path,
 				s.rrd.step,
@@ -46,16 +49,25 @@ async function processRequest(id:number) {
 					`DS:value1:GAUGE:${s.rrd.heartbeat}:U:U`,
 					`DS:value2:GAUGE:${s.rrd.heartbeat}:U:U`,
 					`DS:value3:GAUGE:${s.rrd.heartbeat}:U:U`,
-					`RRA:AVERAGE:0.5:1:60`
+					`RRA:AVERAGE:0.5:1:3600`
 				]
 			);
 		}
-		let args = req.values.map(v => v.toString());
+
+		// console.log(`Updating RRD file: ${path} @ ${req.at} ${req.values.join(" ")}`);
+		let args = req.values.map(v => `${v}`);
 		args.unshift(req.at.toString());
-		console.log(`Updating RRD file: ${path} @ ${req.at}`);
-		await bluebird.promisify(rrd.update).call(rrd, path, "value1:value2:value3", [args.join(":")]);
+		for (let i=0; i<60; i++) {
+			args[0] = `${req.at + i}`;
+			await bluebird.promisify(rrd.update).call(rrd, path, "value1:value2:value3", [args.join(":")]);
+		}
+
+		console.log(`Sending ack: tag=${req.msg.fields.deliveryTag} id=${req.msg.properties.messageId}`);
+		ch.ack(req.msg);
+
 		let dt = (new Date).getTime() / 1000.0 - startTime;
 		console.log(`${++count} ${dt} [sec]`);
+		if (count==1200) setTimeout(()=>process.exit(0), 100);
 	}
 	delete queue[id];
 }
@@ -63,9 +75,10 @@ async function processRequest(id:number) {
 let received: number = 0;
 
 function onAmqpMessage(msg: amqp.Message) {
+	console.log(`${++received} Received a message id=${msg.properties.messageId}`);
 	if (startTime == 0) startTime = (new Date).getTime() / 1000.0;
 	let req: RrdRequest = JSON.parse(msg.content.toString());
-	console.log(`${++received} Received a message ${JSON.stringify(req)}`);
+	req.msg = msg;
 	if (!queue[req.id]) {
 		queue[req.id] = [req];
 		processRequest(req.id).catch(err => {
@@ -84,8 +97,8 @@ async function main() {
 
 	const location = `amqp://${s.amqp.user}:${s.amqp.pass}@${s.amqp.host}:${s.amqp.port||5672}`;
 	console.log(`Connecting to ${location}`);
-	let conn = await amqp.connect(location);
-	let ch = await conn.createChannel();
+	conn = await amqp.connect(location);
+	ch = await conn.createChannel();
 	ch.assertQueue(s.amqp.queue, {durable: true});
 
 	console.log('Waiting for messages');
