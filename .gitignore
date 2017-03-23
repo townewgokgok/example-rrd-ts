@@ -2,6 +2,7 @@ build
 data
 settings.yml
 *.rrd
+.idea/
 
 # Created by https://www.gitignore.io/api/osx,windows,sublimetext,code,intellij,node
 

@@ -74,7 +74,7 @@ async function processRequest(id:number) {
 
 let received: number = 0;
 
-function onAmqpMessage(msg: amqp.Message) {
+function onReceive(msg: amqp.Message) {
 	console.log(`${++received} Received a message id=${msg.properties.messageId}`);
 	if (startTime == 0) startTime = (new Date).getTime() / 1000.0;
 	let req: RrdRequest = JSON.parse(msg.content.toString());
@@ -102,7 +102,7 @@ async function main() {
 	ch.assertQueue(s.amqp.queue, {durable: true});
 
 	console.log('Waiting for messages');
-	await ch.consume(s.amqp.queue, onAmqpMessage, {noAck: false});
+	await ch.consume(s.amqp.queue, onReceive, {noAck: false});
 }
 
 main().catch(err => {
