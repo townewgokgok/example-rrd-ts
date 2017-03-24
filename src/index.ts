@@ -62,12 +62,12 @@ async function processRequest(id:number) {
 			await bluebird.promisify(rrd.update).call(rrd, path, "value1:value2:value3", [args.join(":")]);
 		}
 
-		console.log(`Sending ack: tag=${req.msg.fields.deliveryTag} id=${req.msg.properties.messageId}`);
+		console.log(`${++count}: Sending ack: tag=${req.msg.fields.deliveryTag} id=${req.msg.properties.messageId}`);
 		ch.ack(req.msg);
 
 		let dt = (new Date).getTime() / 1000.0 - startTime;
-		console.log(`${++count} ${dt} [sec]`);
-		if (count==1200) setTimeout(()=>process.exit(0), 100);
+		console.log(`${count}: ${dt} [sec]`);
+		if (count==6000) setTimeout(()=>process.exit(0), 100);
 	}
 	delete queue[id];
 }
@@ -75,7 +75,7 @@ async function processRequest(id:number) {
 let received: number = 0;
 
 function onReceive(msg: amqp.Message) {
-	console.log(`${++received} Received a message id=${msg.properties.messageId}`);
+	console.log(`${++received}: Received a message id=${msg.properties.messageId}`);
 	if (startTime == 0) startTime = (new Date).getTime() / 1000.0;
 	let req: RrdRequest = JSON.parse(msg.content.toString());
 	req.msg = msg;
